@@ -2,6 +2,7 @@ import os
 import random
 import sys
 import time
+import math
 
 import pygame as pg
 
@@ -25,28 +26,6 @@ def check_bound(obj_rct: pg.Rect) -> tuple[bool, bool]:
         tate = False
     return yoko, tate
 
-class Beam:
-    """
-    ビームに関するクラス
-    """
-    def __init__(self, xy: tuple[int, int]):
-        """
-        ビーム画像Surfaceを作成する
-        引数1 xy：こうかとん画像の位置座標タプル
-        """
-        self.img = pg.image.load(f"{MAIN_DIR}/fig/beam.png")
-        self.rct = self.img.get_rect()
-        self.rct.center = xy[0]+100, xy[1]
-        self.vx, self.vy = 5, 0
-
-    def update(self, screen: pg.Surface):
-        """
-        ビームを速度ベクトルself._vx, self._vyに基づき移動させる
-        引数 screen：画面Surface
-        """
-        self.rct.move_ip(self.vx, self.vy)
-        screen.blit(self.img, self.rct)
-
 class Bird:
     """
     ゲームキャラクター（こうかとん）に関するクラス
@@ -64,6 +43,7 @@ class Bird:
         引数1 num：こうかとん画像ファイル名の番号
         引数2 xy：こうかとん画像の位置座標タプル
         """
+        self.dire = (5, 0)
         img0 = pg.transform.rotozoom(pg.image.load(f"{MAIN_DIR}/fig/{num}.png"), 0, 2.0)
         img = pg.transform.flip(img0, True, False)  # デフォルトのこうかとん（右向き）
         self.imgs = {  # 0度から反時計回りに定義
@@ -105,6 +85,7 @@ class Bird:
             self.rct.move_ip(-sum_mv[0], -sum_mv[1])
         if sum_mv != [0, 0]: # 何もキーが押されていなかったら
             self.img = self.imgs[tuple(sum_mv)]
+            self.dire = tuple(sum_mv)
         screen.blit(self.img, self.rct)
 
 
@@ -141,6 +122,33 @@ class Bomb:
         self.rct.move_ip(self.vx, self.vy)
         screen.blit(self.img, self.rct)
 
+class Beam:
+    """
+    ビームに関するクラス
+    """
+    def __init__(self, bird: Bird):
+        """
+        ビーム画像Surfaceを作成する
+        引数1 xy：こうかとん画像の位置座標タプル
+        """
+        self.img = pg.image.load(f"{MAIN_DIR}/fig/beam.png")
+        xy = bird.rct.center
+        self.vx, self.vy = bird.dire[0], bird.dire[1]
+        self.degree = math.degrees(math.atan2(-self.vy, self.vx)) 
+        self.img = pg.transform.rotozoom(self.img, self.degree, 1.0)
+        self.rct = self.img.get_rect()
+        self.rct.centerx = xy[0]+bird.rct.width*self.vx/5
+        self.rct.centery =  xy[1]+bird.rct.height*self.vy/5
+
+    def update(self, screen: pg.Surface):
+        """
+        ビームを速度ベクトルself._vx, self._vyに基づき移動させる
+        引数 screen：画面Surface
+        """
+        self.rct.move_ip(self.vx, self.vy)
+        screen.blit(self.img, self.rct)
+
+
 
 def main():
     pg.display.set_caption("たたかえ！こうかとん")
@@ -157,7 +165,7 @@ def main():
             if event.type == pg.QUIT:
                 return
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE: # スペースキーが押されたら
-                beam = Beam(bird.rct.center) # ビームインスタンスの生成
+                beam = Beam(bird) # ビームインスタンスの生成
         
         screen.blit(bg_img, [0, 0])
         for bomb in bombs:
