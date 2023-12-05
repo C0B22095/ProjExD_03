@@ -159,7 +159,6 @@ def main():
                 return
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE: # スペースキーが押されたら
                 beam = Beam(bird.rct.center) # ビームインスタンスの生成
-                flag = True
         
         screen.blit(bg_img, [0, 0])
         if bomb is not None:
